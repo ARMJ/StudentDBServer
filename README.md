@@ -1,0 +1,2 @@
+NodeJS Server for Jashore University of Science and Technology Student Database System.
+It's a simple NodeJS application developed to provide the backed service for student database of Jashore University of Science and Technology. It uses ExpressJS and mongoose to manage the request and provide response from the MongoDB server.

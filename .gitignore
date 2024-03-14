@@ -1,4 +1,4 @@
-/build
+/iisnode
 /node_modules
 .env
 /logs

@@ -29,6 +29,10 @@ const UserSchema = new mongoose.Schema({
     role: {
         type: String,
         default: "admin"
+    },
+    isDeleted: {
+        type: Boolean,
+        default: false
     }
 });
 

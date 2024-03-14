@@ -24,15 +24,15 @@ const login = async (req, res) => {
 
   let foundStudent = await Student.findOne({ roll: req.body.roll });
   if (foundStudent) {
-    let pictureUrl = "../../assets/img/theme/images.png";
+    let pictureUrl = null;
     const isMatch = await foundStudent.comparePassword(password);
-    if(foundStudent.picture){
-      pictureUrl = await minioClient.presignedGetObject(bucket, foundStudent.picture, 24 * 60 * 60);
-    }
-    let validity = "1d";
-    let redirectPath = "/student";
-    if (remember) validity = "1y";
     if (isMatch) {
+      if (foundStudent.picture) {
+        pictureUrl = await minioClient.presignedGetObject('student-pictures', foundStudent.picture, 24 * 60 * 60);
+      }
+      let validity = "1d";
+      let redirectPath = "/student";
+      if (remember) validity = "1y";
       const token = jwt.sign(
         { id: foundStudent._id, name: foundStudent.name, role: 'student' },
         process.env.JWT_SECRET,
@@ -42,10 +42,10 @@ const login = async (req, res) => {
       );
       return res.status(200).json({ msg: "student logged in", token, navigate: redirectPath, name: foundStudent.name, role: 'student', pictureUrl });
     } else {
-      return res.status(400).json({ msg: "Bad credentails" });
+      return res.status(400).json({ msg: "Wrong password" });
     }
   } else {
-    return res.status(400).json({ msg: "Bad credentails" });
+    return res.status(400).json({ msg: "Wrong Username or password" });
   }
 };
 
@@ -58,13 +58,13 @@ const adminLogin = async (req, res) => {
     });
   }
 
-  let foundUser = await User.findOne({ email: req.body.email });
+  let foundUser = await User.findOne({ email: req.body.email, isDeleted: false });
   if (foundUser) {
     const isMatch = await foundUser.comparePassword(password);
-    let validity = "1d";
-    let redirectPath = "/user";
-    if (remember) validity = "1y";
     if (isMatch) {
+      let validity = "1d";
+      let redirectPath = "/user";
+      if (remember) validity = "1y";
       const token = jwt.sign(
         { id: foundUser._id, name: foundUser.name, role: foundUser.role },
         process.env.JWT_SECRET,
@@ -79,10 +79,10 @@ const adminLogin = async (req, res) => {
       }
       return res.status(200).json({ msg: "user logged in", token, navigate: redirectPath, name: foundUser.name, role: foundUser.role });
     } else {
-      return res.status(400).json({ msg: "Bad password" });
+      return res.status(400).json({ msg: "Wrong password" });
     }
   } else {
-    return res.status(400).json({ msg: "Bad credentails" });
+    return res.status(400).json({ msg: "Wrong Username or Admin is Deleted" });
   }
 };
 

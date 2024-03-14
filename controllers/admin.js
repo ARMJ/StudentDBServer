@@ -2,17 +2,8 @@ const JUSTStudent = require("../models/JUSTStudent");
 const User = require("../models/User");
 const File = require('../models/File');
 const logger = require('../helper/logger');
-const minio = require('minio');
 const path = require('path');
-
-const minioClient = new minio.Client({
-  endPoint: '10.23.222.194',
-  port: 9000,
-  useSSL: false,
-  accessKey: 'lv6JwyEShBwYs8IHyQuU',
-  secretKey: 'MIdqCsVX9GEpUBN1RUpqCQ6jwE5itwoMazxK9HvR'
-});
-
+const minioClient = require('../helper/minio');
 
 const dashboard = async (req, res) => {
   let dashboardData = [];
@@ -135,7 +126,7 @@ const uploadFingerprintsFS = async (req, res) => {
             student.files.updatedAt = Date.now();
             await student.files.save();
             logger.info(`${req.user.name} added fingerprints for user ${student.name}, roll: ${student.roll}, dept: ${student.dept}, session: ${student.admissionSession}.`);
-            
+
           } catch (err) {
             logger.error(`Error: ${err.message} Error in fingerprint upload by ${req.user.name} for user ${req.headers.stdid}.`);
             return res.status(500).json({ msg: "Error in fingerprint upload" });
@@ -153,7 +144,7 @@ const uploadFingerprintsFS = async (req, res) => {
             student.files = new_file.id;
             await student.save();
             logger.info(`${req.user.name} added fingerprints for user ${student.name}, roll: ${student.roll}, dept: ${student.dept}, session: ${student.admissionSession}.`);
-          }catch(err){
+          } catch (err) {
             logger.error(`Error: ${err.message} Error in fingerprint upload by ${req.user.name} for user ${req.headers.stdid}.`);
             return res.status(500).json({ msg: "Error in fingerprint upload" });
           }
@@ -191,7 +182,7 @@ const uploadSignatureFS = async (req, res) => {
   const file = req.file.buffer;
   const bucket = 'student-signatures';
   let student = await JUSTStudent.findOne({ _id: req.headers.stdid });
-  minioClient.putObject(bucket, fileName, file, async (err, etag) => {
+  minioClient.putObject(bucket, fileName, file, { 'Content-Type': req.file.mimetype }, async (err, etag) => {
     if (err) {
       logger.error(`Error: ${err.message} Error in signature upload by ${req.user.name} for user ${req.headers.stdid}.`);
       return res.status(500).json({ msg: "Error in signature upload" });
@@ -247,7 +238,7 @@ const uploadPictureFS = async (req, res) => {
   const fileName = req.headers.stdid + path.extname(req.file.originalname);
   const file = req.file.buffer;
   const bucket = 'student-pictures';
-  minioClient.putObject(bucket, fileName, file, async (err, etag) => {
+  minioClient.putObject(bucket, fileName, file, { 'Content-Type': req.file.mimetype }, async (err, etag) => {
     if (err) {
       logger.error(`Error: ${err.message} Error in picture upload by ${req.user.name} for user ${req.headers.stdid}.`);
       return res.status(500).json({ msg: "Error in picture upload" });
@@ -271,7 +262,7 @@ const studentById = async (req, res) => {
   let student = await JUSTStudent.findOne({ _id: req.query.id }).populate('files');
   const bucket = 'student-pictures';
   if (student.picture) {
-    let pictureUrl = await await minioClient.presignedGetObject(bucket, student.picture, 24 * 60 * 60);
+    let pictureUrl = await minioClient.presignedGetObject(bucket, student.picture, 60 * 60);
     student.picture = pictureUrl;
   }
   return res.status(200).json({ msg: "The student information is loaded", student });
@@ -288,7 +279,7 @@ const getAllStudents = async (req, res) => {
 };
 
 const getAdmins = async (req, res) => {
-  let admins = await User.find({ role: 'admin' });
+  let admins = await User.find({ role: 'admin', isDeleted: false });
   return res.status(200).json({ msg: "All Admins", admins });
 }
 
@@ -314,7 +305,10 @@ const addAdmin = async (req, res) => {
 
 const deleteAdmin = async (req, res) => {
   try {
-    await User.deleteOne({ _id: req.body.id });
+    let admin = await User.findOne({ _id: req.body.id });
+    admin.isDeleted = true;
+    admin.save();
+    logger.info("Super Admin deleted the admin named " + admin.name);
     return res.status(200).json({ msg: "Admin deleted" });
   } catch (error) {
     return res.status(500).json(error);

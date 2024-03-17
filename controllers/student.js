@@ -3,7 +3,7 @@ const bucket = 'student-pictures';
 const minioClient = require('../helper/minio');
 
 const profile = async (req, res) => {
-  const student = await JUSTStudent.findOne({ _id: req.user.id });
+  const student = await JUSTStudent.findOne({ _id: req.user.id }, { password: 0});
   if (student.picture) {
     let pictureUrl = await await minioClient.presignedGetObject(bucket, student.picture, 60 * 60);
     student.picture = pictureUrl;
@@ -16,7 +16,7 @@ const profile = async (req, res) => {
 };
 
 const studentDetails = async (req, res) => {
-  const student = await JUSTStudent.findOne({ _id: req.user.id }).populate('files');
+  const student = await JUSTStudent.findOne({ _id: req.user.id }, { password: 0}).populate('files');
 
   if (student.picture) {
     let pictureUrl = await await minioClient.presignedGetObject(bucket, student.picture, 60 * 60);

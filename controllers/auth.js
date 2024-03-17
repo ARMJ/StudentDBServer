@@ -1,17 +1,7 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const Student = require('../models/JUSTStudent');
-const minio = require('minio');
-
-const bucket = 'student-pictures';
-const minioClient = new minio.Client({
-  endPoint: '10.23.222.194',
-  port: 9000,
-  useSSL: false,
-  accessKey: 'lv6JwyEShBwYs8IHyQuU',
-  secretKey: 'MIdqCsVX9GEpUBN1RUpqCQ6jwE5itwoMazxK9HvR'
-});
-
+const minioClient = require('../helper/minio');
 
 const login = async (req, res) => {
   const { roll, password, remember } = req.body;

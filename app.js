@@ -8,17 +8,10 @@ const app = express();
 const authRouter = require("./routes/auth");
 const adminRouter = require("./routes/admin");
 const studentRouter = require("./routes/student");
-const bodyParser = require('body-parser');
 
 app.use(express.json());
 
-app.use(
-    bodyParser.text({
-        type: '/',
-    })
-);
-
-app.use(cors())
+app.use(cors());
 app.use("/api/v1", authRouter);
 app.use("/api/v1/admin", adminRouter);
 app.use("/api/v1/student", studentRouter);

@@ -259,7 +259,7 @@ const uploadPictureFS = async (req, res) => {
 }
 
 const studentById = async (req, res) => {
-  let student = await JUSTStudent.findOne({ _id: req.query.id }).populate('files');
+  let student = await JUSTStudent.findOne({ _id: req.query.id }, { password: 0}).populate('files');
   const bucket = 'student-pictures';
   if (student.picture) {
     let pictureUrl = await minioClient.presignedGetObject(bucket, student.picture, 60 * 60);
@@ -269,7 +269,7 @@ const studentById = async (req, res) => {
 }
 
 const searchStudents = async (req, res) => {
-  let students = await JUSTStudent.find({ dept: req.query.dept, admissionSession: req.query.session });
+  let students = await JUSTStudent.find({ dept: req.query.dept, admissionSession: req.query.session }, { password: 0});
   return res.status(200).json({ msg: "All students of " + req.query.dept + " from session " + req.query.session, students });
 }
 
@@ -279,7 +279,7 @@ const getAllStudents = async (req, res) => {
 };
 
 const getAdmins = async (req, res) => {
-  let admins = await User.find({ role: 'admin', isDeleted: false });
+  let admins = await User.find({ role: 'admin', isDeleted: false }, { password: 0});
   return res.status(200).json({ msg: "All Admins", admins });
 }
 

@@ -115,7 +115,7 @@ const uploadFingerprintsFS = async (req, res) => {
         logger.error(`Error: ${err.message} Error in fingerprint upload by ${req.user.name} for user ${req.headers.stdid}.`);
         return res.status(500).json({ msg: "Error in fingerprint upload" });
       } else {
-        student = await JUSTStudent.findOne({ _id: req.headers.stdid }).populate('files');
+        student = await JUSTStudent.findOne({ _id: req.headers.stdid }, { password: 0 }).populate('files');
         if (student.files) {
           try {
             if (fileName.includes('index')) {
@@ -181,7 +181,7 @@ const uploadSignatureFS = async (req, res) => {
   const fileName = req.headers.stdid + path.extname(req.file.originalname);
   const file = req.file.buffer;
   const bucket = 'student-signatures';
-  let student = await JUSTStudent.findOne({ _id: req.headers.stdid });
+  let student = await JUSTStudent.findOne({ _id: req.headers.stdid }, { password: 0 });
   minioClient.putObject(bucket, fileName, file, { 'Content-Type': req.file.mimetype }, async (err, etag) => {
     if (err) {
       logger.error(`Error: ${err.message} Error in signature upload by ${req.user.name} for user ${req.headers.stdid}.`);
@@ -243,7 +243,7 @@ const uploadPictureFS = async (req, res) => {
       logger.error(`Error: ${err.message} Error in picture upload by ${req.user.name} for user ${req.headers.stdid}.`);
       return res.status(500).json({ msg: "Error in picture upload" });
     } else {
-      let student = await JUSTStudent.findOne({ _id: req.headers.stdid });
+      let student = await JUSTStudent.findOne({ _id: req.headers.stdid }, { password: 0 });
       if (student) {
         student.picture = fileName;
         student.save();
@@ -259,27 +259,39 @@ const uploadPictureFS = async (req, res) => {
 }
 
 const studentById = async (req, res) => {
-  let student = await JUSTStudent.findOne({ _id: req.query.id }, { password: 0}).populate('files');
+  let student = await JUSTStudent.findOne({ _id: req.query.id }, { password: 0 }).populate('files').sort('roll');
   const bucket = 'student-pictures';
   if (student.picture) {
     let pictureUrl = await minioClient.presignedGetObject(bucket, student.picture, 60 * 60);
     student.picture = pictureUrl;
   }
+  if(student.files){
+    if(student.files.signature !== ""){
+      let signatureUrl = await minioClient.presignedGetObject('student-signatures', student.files.signature, 60 * 60);
+      student.files.signature = signatureUrl;
+    }
+  }
   return res.status(200).json({ msg: "The student information is loaded", student });
 }
 
 const searchStudents = async (req, res) => {
-  let students = await JUSTStudent.find({ dept: req.query.dept, admissionSession: req.query.session }, { password: 0});
-  return res.status(200).json({ msg: "All students of " + req.query.dept + " from session " + req.query.session, students });
+  let students;
+  if(req.query.session){
+    students = await JUSTStudent.find({ dept: req.query.dept, admissionSession: req.query.session }, { password: 0 }).sort('roll');
+    return res.status(200).json({ msg: "All students of " + req.query.dept + " from session " + req.query.session, students });
+  }else{
+    students = await JUSTStudent.find({ dept: req.query.dept }, { password: 0 }).sort('roll');
+    return res.status(200).json({ msg: "All students of " + req.query.dept + " from all sessions", students });
+  }
 }
 
 const getAllStudents = async (req, res) => {
-  let students = await JUSTStudent.find({});
+  let students = await JUSTStudent.find({}).sort('roll');
   return res.status(200).json({ msg: "All students", students });
 };
 
 const getAdmins = async (req, res) => {
-  let admins = await User.find({ role: 'admin', isDeleted: false }, { password: 0});
+  let admins = await User.find({ role: 'admin', isDeleted: false }, { password: 0 });
   return res.status(200).json({ msg: "All Admins", admins });
 }
 

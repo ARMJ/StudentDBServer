@@ -181,7 +181,7 @@ const uploadSignatureFS = async (req, res) => {
   const fileName = req.headers.stdid + path.extname(req.file.originalname);
   const file = req.file.buffer;
   const bucket = 'student-signatures';
-  let student = await JUSTStudent.findOne({ _id: req.headers.stdid }, { password: 0 });
+  let student = await JUSTStudent.findOne({ _id: req.headers.stdid }, { password: 0 }).populate('files');
   minioClient.putObject(bucket, fileName, file, { 'Content-Type': req.file.mimetype }, async (err, etag) => {
     if (err) {
       logger.error(`Error: ${err.message} Error in signature upload by ${req.user.name} for user ${req.headers.stdid}.`);
